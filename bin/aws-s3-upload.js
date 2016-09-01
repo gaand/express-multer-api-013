@@ -9,23 +9,37 @@ const path = require('path');
 
 const mime = require('mime');
 
+const s3Upload = (options) => {
+
+  let stream = fs.createReadStream(options.path);
+  let contentType = mime.lookup(options.path);
+  let ext = path.extname(options.path);
+  let folder = (new Date()).toISOString().split('T')[0];
+
+  const params = {
+    ACL: 'public-read',
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
+    ContentType: contentType,
+    Key: `${folder}/keenen ivory wayans${ext}`,
+    Body: stream,
+  };
+
+  return new Promise((resolve, reject) => {
+    s3.upload(params, (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+};
+
 let file = {
   path: process.argv[2],
   title: process.argv[3],
 };
 
-let stream = fs.createReadStream(file.path);
-let contentType = mime.lookup(file.path);
-let ext = path.extname(file.path);
-
-const params = {
-  ACL: 'public-read',
-  Bucket: process.env.AWS_S3_BUCKET_NAME,
-  ContentType: contentType,
-  Key: 'keenen ivory wayans' + ext,
-  Body: stream,
-};
-
-s3.upload(params, function (err, data) {
-  console.log(err, data);
-});
+s3Upload(file)
+  .then(data => console.log(data))
+  .catch(err => console.error(err));
